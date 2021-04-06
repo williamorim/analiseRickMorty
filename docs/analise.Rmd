@@ -1,0 +1,87 @@
+---
+title: "Análise Rick and Morty"
+author: "William Amorim"
+date: "4/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Motivação
+
+Ver se a quarta temporada é pior.
+
+# Como consegui os dados?
+
+```{r, eval=FALSE}
+library(magrittr)
+
+url <- "https://en.wikipedia.org/wiki/List_of_Rick_and_Morty_episodes"
+
+res <- httr::GET(url)
+
+wiki_page <- httr::content(res)
+
+lista_tab <- wiki_page %>%
+  xml2::xml_find_all(".//table") %>%
+  magrittr::extract(2:5) %>%
+  rvest::html_table(fill = TRUE) %>%
+  purrr::map(janitor::clean_names) %>%
+  purrr::map(~dplyr::rename_with(.x, ~stringr::str_remove(.x, "_37")))
+```
+
+# Visualização
+
+```{r, message=FALSE, warning= FALSE}
+library(dplyr)
+library(ggplot2)
+
+source("../R/graficos.R")
+
+rick_and_morty <- readr::read_rds("../data/rick_and_morty.rds")
+
+rick_and_morty %>%
+  mutate(num_temporada = as.factor(num_temporada)) %>%
+  ggplot(aes(
+    x = num_episodio,
+    y = qtd_espectadores_EUA,
+    fill = num_temporada)
+  ) +
+  geom_col() +
+  labs(
+    x = "episodio",
+    y = "audiencia",
+    fill = "temporada",
+    title = "Rick and Morty"
+  ) +
+  tema_rickmorty()
+```
+
+```{r}
+rick_and_morty %>%
+  mutate(num_temporada = as.factor(num_temporada)) %>% 
+  group_by(num_temporada) %>% 
+  summarise(
+    audiencia_media = sum(qtd_espectadores_EUA)
+  ) %>% 
+  ggplot(aes(
+    x = num_temporada,
+    y = audiencia_media,
+    fill = num_temporada
+  )) +
+  geom_col(show.legend = FALSE) +
+  labs(
+    x = "episodio",
+    y = "audiencia",
+    title = "Rick and Morty"
+  ) +
+  tema_rickmorty()
+
+```
+
+
+# Conclusão
+
+Talvez tenha piorado.
